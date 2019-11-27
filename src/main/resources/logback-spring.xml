@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+
+    <!--
+    每个logger都关联到logger上下文，默认上下文名称为“default”,
+    但可以使用设置成其他名字，用于区分不同应用程序的记录。
+    一旦设置，不能修改,可以通过%contextName来打印日志上下文名称。
+    -->
+    <contextName>log-app</contextName>
+
+    <!-- 从springboot配置文件中读取变量 -->
+    <springProperty scope="context" name="LOG_HOME" source="log.home" defaultValue="logs"/>
+    <property name="LOG_NAME" value="log-app"/>
+
+
+    <!--输出到控制台-->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %contextName [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--输出到文件-->
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/${LOG_NAME}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/${LOG_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern><!--按天回滚-->
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>2</maxHistory><!-- 日志最大的历史: 2天，不包括当天 -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %contextName [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+    root节点是必选节点，用来指定最基础的日志输出级别，大小写无关：TRACE, DEBUG, INFO, WARN, ERROR, ALL 和 OFF
+    可以包含零个或多个元素，标识这个appender将会添加到这个loger
+    -->
+    <!--
+    <root level="INFO">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </root>
+    -->
+
+    <!--
+    <loger>用来设置某一个包或者具体的某一个类的日志打印级别、以及指定<appender>
+    name:用来指定受此loger约束的某一个包或者具体的某一个类
+    level:用来设置打印级别，大小写无关：TRACE, DEBUG, INFO, WARN, ERROR, ALL 和 OFF，如果没有设置打印级别，则继承他的上级的日志级别
+    addtivity:是否向上级loger传递打印信息。默认是true，若向上级loger传递打印信息，则上级也会打印一份日志
+    <appender-ref>子节点
+    -->
+    <logger name="com.lizq.log.controller"/><!-- 没有level,继承上级的level(如果是prod环境则是ERROR，否则是root的INFO)；没有<appender-ref>子节点，本身不打印日志；additivity默认为true，让上级(如果是prod环境则是com.lizq.log，否则是root)打印日志 -->
+    <logger name="com.lizq.log.controller.LogController" level="WARN" additivity="false">
+        <appender-ref ref="console"/>
+    </logger>
+
+    <!-- 多环境日志输出，文件名称不是logback.xml，想使用spring扩展profile支持，要以logback-spring.xml命名 -->
+    <!-- 开发环境+测试环境. 多个使用逗号隔开. -->
+    <springProfile name="dev,test">
+        <root level="DEBUG">
+            <appender-ref ref="console"/>
+        </root>
+        <logger name="com.lizq.log.schedule" level="DEBUG"/>
+        <logger name="com.lizq.log.service" level="INFO"/>
+    </springProfile>
+    <!-- 生产环境. -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="console"/>
+            <appender-ref ref="file"/>
+        </root>
+        <logger name="com.lizq.log" level="INFO"/>
+    </springProfile>
+
+</configuration>
